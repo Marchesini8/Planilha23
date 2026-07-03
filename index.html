@@ -1159,6 +1159,12 @@
           radial-gradient(circle at 20% 0%, rgba(53, 229, 154, 0.13), transparent 22rem);
       }
 
+      input,
+      select,
+      textarea {
+        font-size: 16px;
+      }
+
       .table-wrap {
         overflow: visible;
       }
@@ -1481,15 +1487,10 @@
 
       <section class="panel">
         <div class="panel-header">
-          <h2>Exportação e backup</h2>
+          <h2>Exportação</h2>
         </div>
         <div class="actions-row">
-          <button class="btn secondary" type="button" id="exportCsvBtn">Exportar gastos em CSV</button>
-          <button class="btn secondary" type="button" id="exportPdfBtn">Exportar dados em PDF</button>
-          <button class="btn secondary" type="button" id="backupJsonBtn">Baixar backup JSON</button>
-          <button class="btn secondary" type="button" id="importJsonBtn">Importar backup JSON</button>
-          <button class="btn danger" type="button" id="clearDataBtn">Limpar todos os dados</button>
-          <input class="file-input" id="jsonFileInput" type="file" accept="application/json,.json">
+          <button class="btn secondary" type="button" id="exportPdfBtn">📄 Exportar dados em PDF</button>
         </div>
       </section>
     </section>
@@ -2281,16 +2282,7 @@
         document.getElementById(id).addEventListener("input", renderExpensesTable);
       });
 
-      $("#exportCsvBtn").addEventListener("click", exportCsv);
       $("#exportPdfBtn").addEventListener("click", exportPdf);
-      $("#backupJsonBtn").addEventListener("click", backupJson);
-      $("#importJsonBtn").addEventListener("click", () => $("#jsonFileInput").click());
-      $("#jsonFileInput").addEventListener("change", (event) => {
-        const file = event.target.files[0];
-        if (file) importJson(file);
-        event.target.value = "";
-      });
-      $("#clearDataBtn").addEventListener("click", clearAllData);
     }
 
     function init() {
