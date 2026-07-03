@@ -105,15 +105,69 @@
     }
 
     .tabs {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 8px;
+      display: flex;
+      justify-content: flex-end;
       position: sticky;
       top: 0;
       z-index: 8;
       padding: 8px 0 14px;
       background: linear-gradient(180deg, var(--bg), rgba(11, 16, 32, 0.86));
       backdrop-filter: blur(14px);
+    }
+
+    .menu-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      min-height: 44px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 10px 13px;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.045);
+      font-weight: 900;
+      transition: transform 0.18s var(--ease), border-color 0.18s var(--ease), background 0.18s var(--ease);
+    }
+
+    .menu-toggle:hover,
+    .tabs.open .menu-toggle {
+      transform: translateY(-1px);
+      border-color: rgba(255, 255, 255, 0.22);
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .hamburger {
+      display: grid;
+      gap: 4px;
+      width: 20px;
+    }
+
+    .hamburger span {
+      display: block;
+      height: 2px;
+      border-radius: 999px;
+      background: currentColor;
+    }
+
+    .menu-panel {
+      position: absolute;
+      top: calc(100% - 8px);
+      right: 0;
+      width: min(290px, calc(100vw - 24px));
+      display: none;
+      grid-template-columns: 1fr;
+      gap: 8px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(12, 18, 32, 0.96);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+    }
+
+    .tabs.open .menu-panel {
+      display: grid;
+      animation: tabSlide 0.22s var(--ease) both;
     }
 
     .tab-btn {
@@ -123,6 +177,7 @@
       border-radius: var(--radius);
       padding: 11px 10px;
       min-height: 44px;
+      width: 100%;
       white-space: nowrap;
       transition: 0.2s ease;
     }
@@ -699,11 +754,9 @@
     }
 
     .tabs {
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 10px;
       top: 0;
       margin-bottom: 18px;
-      padding: 10px;
+      padding: 10px 0;
       border: 1px solid var(--line);
       border-radius: 20px;
       background: rgba(7, 11, 22, 0.72);
@@ -1168,7 +1221,6 @@
       }
 
       .tabs {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
         position: sticky;
         border-radius: 18px;
       }
@@ -1416,10 +1468,16 @@
     </header>
 
     <nav class="tabs" aria-label="Menu principal">
-      <button class="tab-btn active" data-tab="dashboard">💹 Dashboard</button>
-      <button class="tab-btn" data-tab="gastos">💳 Gastos</button>
-      <button class="tab-btn" data-tab="metas">💵 Metas</button>
-      <button class="tab-btn" data-tab="config">🏦 Configurações</button>
+      <button class="menu-toggle" type="button" id="menuToggle" aria-expanded="false" aria-controls="menuPanel">
+        <span class="hamburger" aria-hidden="true"><span></span><span></span><span></span></span>
+        Menu
+      </button>
+      <div class="menu-panel" id="menuPanel">
+        <button class="tab-btn active" data-tab="dashboard">💹 Dashboard</button>
+        <button class="tab-btn" data-tab="gastos">💳 Gastos</button>
+        <button class="tab-btn" data-tab="metas">💵 Metas</button>
+        <button class="tab-btn" data-tab="config">🏦 Configurações</button>
+      </div>
     </nav>
 
     <section id="dashboard" class="tab active">
@@ -2421,6 +2479,20 @@
     function switchTab(tabId) {
       document.querySelectorAll(".tab-btn").forEach((btn) => btn.classList.toggle("active", btn.dataset.tab === tabId));
       document.querySelectorAll(".tab").forEach((tab) => tab.classList.toggle("active", tab.id === tabId));
+      closeMenu();
+    }
+
+    function toggleMenu() {
+      const tabs = document.querySelector(".tabs");
+      const isOpen = tabs.classList.toggle("open");
+      $("#menuToggle").setAttribute("aria-expanded", String(isOpen));
+    }
+
+    function closeMenu() {
+      const tabs = document.querySelector(".tabs");
+      if (!tabs) return;
+      tabs.classList.remove("open");
+      $("#menuToggle")?.setAttribute("aria-expanded", "false");
     }
 
     function hydrateForms() {
@@ -2495,6 +2567,11 @@
           openAuthModal("login");
           showNotice("Você saiu da conta.");
         }
+      });
+
+      $("#menuToggle").addEventListener("click", toggleMenu);
+      document.addEventListener("click", (event) => {
+        if (!event.target.closest(".tabs")) closeMenu();
       });
 
       document.querySelectorAll(".tab-btn").forEach((button) => {
