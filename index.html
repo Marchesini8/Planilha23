@@ -1567,6 +1567,8 @@
     let authToken = localStorage.getItem(STORAGE_KEYS.authToken) || "";
     let authUser = loadAuthUser();
     let charts = {};
+    let isLoadingAccountData = false;
+    let syncTimer = null;
 
     const $ = (selector) => document.querySelector(selector);
 
@@ -1630,10 +1632,15 @@
       return new Date().toISOString().slice(0, 7);
     }
 
-    function saveData() {
+    function saveLocalData() {
       localStorage.setItem(STORAGE_KEYS.salary, String(salary));
       localStorage.setItem(STORAGE_KEYS.goal, String(monthlyGoal));
       localStorage.setItem(STORAGE_KEYS.expenses, JSON.stringify(expenses));
+    }
+
+    function saveData() {
+      saveLocalData();
+      scheduleAccountSync();
     }
 
     function showNotice(message, isError = false) {
@@ -1672,6 +1679,66 @@
       return data;
     }
 
+    function hasFinanceData(data = { salary, monthlyGoal, expenses }) {
+      return Number(data.salary) > 0 || Number(data.monthlyGoal) > 0 || (Array.isArray(data.expenses) && data.expenses.length > 0);
+    }
+
+    function getFinancePayload() {
+      return {
+        salary,
+        monthlyGoal,
+        expenses
+      };
+    }
+
+    function scheduleAccountSync() {
+      if (!authToken || isLoadingAccountData) return;
+      clearTimeout(syncTimer);
+      syncTimer = setTimeout(() => {
+        syncAccountData(false);
+      }, 650);
+    }
+
+    async function syncAccountData(showSuccess = true) {
+      if (!authToken) return;
+      try {
+        await apiRequest("/api/finance", {
+          method: "PUT",
+          body: JSON.stringify(getFinancePayload())
+        });
+        if (showSuccess) showNotice("Dados salvos na sua conta.");
+      } catch (error) {
+        showNotice("Os dados ficaram salvos neste aparelho. Não consegui sincronizar com a conta agora.", true);
+      }
+    }
+
+    async function loadAccountData() {
+      if (!authToken) return;
+      isLoadingAccountData = true;
+      try {
+        const accountData = await apiRequest("/api/finance", { method: "GET" });
+        const serverHasData = hasFinanceData(accountData);
+        const localHasData = hasFinanceData();
+
+        if (serverHasData) {
+          salary = Number(accountData.salary) || 0;
+          monthlyGoal = Number(accountData.monthlyGoal) || 0;
+          expenses = Array.isArray(accountData.expenses) ? accountData.expenses : [];
+          saveLocalData();
+          hydrateForms();
+          refreshAll();
+          showNotice("Dados carregados da sua conta.");
+        } else if (localHasData) {
+          await syncAccountData(false);
+          showNotice("Seus dados deste aparelho foram salvos na conta.");
+        }
+      } catch (error) {
+        showNotice("Não consegui carregar os dados da conta agora. Mantive os dados deste aparelho.", true);
+      } finally {
+        isLoadingAccountData = false;
+      }
+    }
+
     function saveAuthSession(user, token) {
       authUser = user;
       authToken = token;
@@ -1679,6 +1746,7 @@
       localStorage.setItem(STORAGE_KEYS.authToken, token);
       updateAuthUi();
       closeAuthModal();
+      loadAccountData();
     }
 
     function clearAuthSession() {
@@ -1727,6 +1795,7 @@
         authUser = data.user;
         localStorage.setItem(STORAGE_KEYS.authUser, JSON.stringify(authUser));
         updateAuthUi();
+        await loadAccountData();
       } catch {
         clearAuthSession();
         openAuthModal("login");
