@@ -63,6 +63,8 @@
       justify-content: space-between;
       gap: 14px;
       margin-bottom: 18px;
+      position: relative;
+      z-index: 80;
     }
 
     .brand {
@@ -103,10 +105,10 @@
       justify-content: flex-end;
       position: relative;
       top: auto;
-      z-index: 8;
+      z-index: 90;
       padding: 0;
       background: transparent;
-      backdrop-filter: blur(14px);
+      backdrop-filter: none;
     }
 
     .menu-toggle {
@@ -145,18 +147,19 @@
 
     .menu-panel {
       position: absolute;
-      top: calc(100% - 8px);
+      top: calc(100% + 10px);
       right: 0;
-      width: min(290px, calc(100vw - 24px));
+      width: min(248px, calc(100vw - 28px));
       display: none;
       grid-template-columns: 1fr;
       gap: 8px;
       padding: 10px;
       border: 1px solid var(--line);
       border-radius: 18px;
-      background: rgba(12, 18, 32, 0.96);
-      box-shadow: var(--shadow);
+      background: #18181b;
+      box-shadow: 0 24px 70px rgba(0, 0, 0, 0.58);
       backdrop-filter: blur(18px);
+      z-index: 999;
     }
 
     .tabs.open .menu-panel {
@@ -1213,19 +1216,32 @@
         align-items: center;
         flex-direction: row;
         flex-wrap: wrap;
+        gap: 10px;
       }
 
       .auth-actions {
         justify-content: flex-end;
         margin-left: auto;
+        gap: 8px;
       }
 
       .auth-actions .btn {
         width: auto;
       }
 
+      .menu-toggle {
+        min-height: 40px;
+        padding: 8px 11px;
+      }
+
+      .menu-panel {
+        top: calc(100% + 8px);
+        right: 0;
+        width: min(228px, calc(100vw - 32px));
+      }
+
       .tabs {
-        position: sticky;
+        position: relative;
         border-radius: 18px;
       }
 
