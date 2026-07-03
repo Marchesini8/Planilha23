@@ -67,6 +67,10 @@
       z-index: 80;
     }
 
+    .topbar.hidden {
+      display: none;
+    }
+
     .brand {
       min-width: 0;
     }
@@ -1992,10 +1996,12 @@
     function openAuthModal(mode = "login") {
       setAuthMode(mode);
       $("#authModal").classList.add("show");
+      if (!authUser) document.querySelector(".topbar").classList.add("hidden");
     }
 
     function closeAuthModal() {
       $("#authModal").classList.remove("show");
+      document.querySelector(".topbar").classList.remove("hidden");
     }
 
     function setAuthMode(mode) {
