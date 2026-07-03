@@ -1273,6 +1273,57 @@
         transition-duration: 0.001ms !important;
       }
     }
+
+    /* Pop-ups em tom grafite neutro, sem aparência azulada. */
+    .auth-modal,
+    .loading-overlay {
+      background:
+        radial-gradient(circle at top, rgba(255, 255, 255, 0.06), transparent 24rem),
+        rgba(9, 9, 11, 0.78);
+    }
+
+    .auth-box,
+    .loader {
+      border-color: rgba(255, 255, 255, 0.12);
+      background:
+        linear-gradient(180deg, rgba(39, 39, 42, 0.98), rgba(18, 18, 20, 0.98)),
+        #18181b;
+      box-shadow: 0 24px 70px rgba(0, 0, 0, 0.52);
+    }
+
+    .auth-toggle {
+      border-color: rgba(255, 255, 255, 0.12);
+      background: rgba(9, 9, 11, 0.72);
+    }
+
+    .auth-toggle button.active {
+      color: #101010;
+      background: linear-gradient(135deg, #f4f4f5, #d4d4d8);
+      box-shadow: 0 10px 24px rgba(255, 255, 255, 0.12);
+    }
+
+    .auth-close {
+      background: rgba(9, 9, 11, 0.68);
+    }
+
+    .notice {
+      color: #f4f4f5;
+      border-color: rgba(255, 255, 255, 0.14);
+      background:
+        linear-gradient(180deg, rgba(39, 39, 42, 0.98), rgba(18, 18, 20, 0.98)),
+        #18181b;
+      box-shadow: 0 18px 46px rgba(0, 0, 0, 0.46);
+    }
+
+    .notice.error {
+      color: #fff;
+      border-color: rgba(255, 99, 117, 0.34);
+      background: linear-gradient(180deg, rgba(82, 27, 36, 0.98), rgba(32, 18, 22, 0.98));
+    }
+
+    .loader-ring {
+      border-top-color: #f4f4f5;
+    }
   </style>
 </head>
 <body>
