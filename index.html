@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Planilha Financeira Pessoal</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <style>
     :root {
       --bg: #0b1020;
@@ -1023,6 +1024,112 @@
       }
     }
 
+    /* Lista mobile compacta para gastos: organizada como extrato financeiro. */
+    @media (max-width: 720px) {
+      body {
+        background:
+          linear-gradient(135deg, #050812, #08101f 58%, #060914),
+          radial-gradient(circle at 20% 0%, rgba(53, 229, 154, 0.13), transparent 22rem);
+      }
+
+      .table-wrap {
+        overflow: visible;
+      }
+
+      tbody {
+        display: grid;
+        gap: 10px;
+      }
+
+      tbody tr {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 6px 12px;
+        padding: 12px;
+        border-radius: 16px;
+        background: rgba(10, 17, 31, 0.92);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      tbody tr:hover {
+        background: rgba(17, 27, 47, 0.96);
+      }
+
+      td {
+        display: block;
+        grid-template-columns: none;
+        padding: 0;
+        border-bottom: 0;
+        font-size: 0.86rem;
+      }
+
+      td::before {
+        display: none;
+      }
+
+      td[data-label="Nome"] {
+        grid-column: 1;
+        grid-row: 1;
+        color: var(--text);
+        font-size: 1rem;
+        font-weight: 900;
+      }
+
+      td[data-label="Valor"] {
+        grid-column: 2;
+        grid-row: 1;
+        justify-self: end;
+        align-self: start;
+        font-weight: 950;
+        font-size: 1rem;
+      }
+
+      td[data-label="Categoria"],
+      td[data-label="Data"],
+      td[data-label="Pagamento"] {
+        color: var(--muted);
+      }
+
+      td[data-label="Categoria"] {
+        grid-column: 1;
+        grid-row: 2;
+      }
+
+      td[data-label="Data"] {
+        grid-column: 1;
+        grid-row: 3;
+      }
+
+      td[data-label="Pagamento"] {
+        grid-column: 2;
+        grid-row: 2;
+        justify-self: end;
+      }
+
+      td[data-label="Observação"] {
+        grid-column: 1 / -1;
+        color: #c9d4e6;
+        font-size: 0.84rem;
+      }
+
+      td[data-label="Observação"]::before {
+        content: "Obs.: ";
+        display: inline;
+        color: var(--muted);
+        font-weight: 800;
+      }
+
+      td[data-label="Ações"] {
+        grid-column: 1 / -1;
+        margin-top: 4px;
+      }
+
+      td[data-label="Categoria"] .badge {
+        min-height: 24px;
+        padding: 3px 8px;
+      }
+    }
+
     @media (prefers-reduced-motion: reduce) {
       *,
       *::before,
@@ -1045,46 +1152,46 @@
     </header>
 
     <nav class="tabs" aria-label="Menu principal">
-      <button class="tab-btn active" data-tab="dashboard">📊 Dashboard</button>
+      <button class="tab-btn active" data-tab="dashboard">💹 Dashboard</button>
       <button class="tab-btn" data-tab="gastos">💳 Gastos</button>
-      <button class="tab-btn" data-tab="metas">🎯 Metas</button>
-      <button class="tab-btn" data-tab="config">⚙️ Configurações</button>
+      <button class="tab-btn" data-tab="metas">💵 Metas</button>
+      <button class="tab-btn" data-tab="config">🏦 Configurações</button>
     </nav>
 
     <section id="dashboard" class="tab active">
       <div class="grid summary-grid">
         <article class="card">
-          <div class="card-icon">💰</div>
+          <div class="card-icon">💵</div>
           <span>Salário total</span>
           <strong id="salaryCard">R$ 0,00</strong>
           <small>Valor mensal cadastrado</small>
         </article>
         <article class="card">
-          <div class="card-icon">🧾</div>
+          <div class="card-icon">💳</div>
           <span>Total gasto no mês</span>
           <strong id="monthSpentCard" class="negative">R$ 0,00</strong>
           <small id="currentMonthLabel">Mês atual</small>
         </article>
         <article class="card">
-          <div class="card-icon">📈</div>
+          <div class="card-icon">🏦</div>
           <span>Saldo restante</span>
           <strong id="balanceCard" class="positive">R$ 0,00</strong>
           <small>Salário menos gastos do mês</small>
         </article>
         <article class="card">
-          <div class="card-icon">⚡</div>
+          <div class="card-icon">📊</div>
           <span>Salário gasto</span>
           <strong id="spentPercentCard">0%</strong>
           <small>Percentual usado no mês</small>
         </article>
         <article class="card">
-          <div class="card-icon">🔥</div>
+          <div class="card-icon">🧾</div>
           <span>Maior gasto</span>
           <strong id="biggestExpenseCard">R$ 0,00</strong>
           <small id="biggestExpenseName">Nenhum gasto</small>
         </article>
         <article class="card">
-          <div class="card-icon">🏷️</div>
+          <div class="card-icon">💹</div>
           <span>Categoria campeã</span>
           <strong id="topCategoryCard">-</strong>
           <small id="topCategoryValue">R$ 0,00</small>
@@ -1246,6 +1353,7 @@
         </div>
         <div class="actions-row">
           <button class="btn secondary" type="button" id="exportCsvBtn">Exportar gastos em CSV</button>
+          <button class="btn secondary" type="button" id="exportPdfBtn">Exportar dados em PDF</button>
           <button class="btn secondary" type="button" id="backupJsonBtn">Baixar backup JSON</button>
           <button class="btn secondary" type="button" id="importJsonBtn">Importar backup JSON</button>
           <button class="btn danger" type="button" id="clearDataBtn">Limpar todos os dados</button>
@@ -1633,6 +1741,104 @@
       showNotice("CSV exportado.");
     }
 
+    function exportPdf() {
+      if (!window.jspdf?.jsPDF) {
+        showNotice("Não foi possível carregar o gerador de PDF. Verifique sua internet.", true);
+        return;
+      }
+
+      showLoading("Gerando PDF...");
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      const month = getCurrentMonth();
+      const monthExpenses = expensesInMonth(month);
+      const totalSpent = sumExpenses(monthExpenses);
+      const balance = salary - totalSpent;
+      const saved = salary - totalSpent;
+      const missingGoal = Math.max(monthlyGoal - saved, 0);
+      const categoryTotals = groupBy(monthExpenses, "category");
+      const topCategory = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1])[0];
+      const filteredExpenses = [...getFilteredExpenses()];
+      let y = 18;
+
+      doc.setFillColor(7, 11, 22);
+      doc.rect(0, 0, 210, 297, "F");
+      doc.setTextColor(244, 248, 255);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(18);
+      doc.text("Relatorio Financeiro Pessoal", 14, y);
+      y += 8;
+      doc.setTextColor(155, 169, 194);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.text(`Gerado em ${formatDate(getToday())} - ${monthFormatter.format(new Date(`${month}-02T12:00:00`))}`, 14, y);
+      y += 12;
+
+      const summaryRows = [
+        ["Salario total", formatMoney(salary)],
+        ["Total gasto no mes", formatMoney(totalSpent)],
+        ["Saldo restante", formatMoney(balance)],
+        ["Meta mensal", formatMoney(monthlyGoal)],
+        ["Falta para meta", formatMoney(missingGoal)],
+        ["Categoria que mais gastou", topCategory ? `${topCategory[0]} (${formatMoney(topCategory[1])})` : "-"]
+      ];
+
+      doc.setFillColor(18, 28, 50);
+      doc.roundedRect(12, y, 186, 52, 3, 3, "F");
+      y += 8;
+      summaryRows.forEach(([label, value], index) => {
+        const x = index % 2 === 0 ? 18 : 108;
+        const rowY = y + Math.floor(index / 2) * 14;
+        doc.setTextColor(155, 169, 194);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.text(label, x, rowY);
+        doc.setTextColor(244, 248, 255);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10);
+        doc.text(value.slice(0, 34), x, rowY + 5);
+      });
+      y += 58;
+
+      doc.setTextColor(244, 248, 255);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(13);
+      doc.text("Gastos", 14, y);
+      y += 7;
+
+      if (!filteredExpenses.length) {
+        doc.setTextColor(155, 169, 194);
+        doc.setFont("helvetica", "normal");
+        doc.text("Nenhum gasto encontrado nos filtros atuais.", 14, y);
+      } else {
+        filteredExpenses.forEach((expense) => {
+          if (y > 272) {
+            doc.addPage();
+            doc.setFillColor(7, 11, 22);
+            doc.rect(0, 0, 210, 297, "F");
+            y = 18;
+          }
+
+          doc.setFillColor(13, 22, 39);
+          doc.roundedRect(12, y - 4, 186, 16, 2.5, 2.5, "F");
+          doc.setTextColor(244, 248, 255);
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(9);
+          doc.text(String(expense.name).slice(0, 42), 16, y + 1);
+          doc.setTextColor(255, 99, 117);
+          doc.text(formatMoney(expense.value), 166, y + 1, { align: "right" });
+          doc.setTextColor(155, 169, 194);
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(8);
+          doc.text(`${expense.category} | ${formatDate(expense.date)} | ${expense.payment}`, 16, y + 7);
+          y += 19;
+        });
+      }
+
+      doc.save(`relatorio-financeiro-${getToday()}.pdf`);
+      showNotice("PDF exportado.");
+    }
+
     function backupJson() {
       const data = JSON.stringify({ salary, monthlyGoal, expenses, exportedAt: new Date().toISOString() }, null, 2);
       downloadFile(`backup-financeiro-${getToday()}.json`, data, "application/json");
@@ -1757,6 +1963,7 @@
       });
 
       $("#exportCsvBtn").addEventListener("click", exportCsv);
+      $("#exportPdfBtn").addEventListener("click", exportPdf);
       $("#backupJsonBtn").addEventListener("click", backupJson);
       $("#importJsonBtn").addEventListener("click", () => $("#jsonFileInput").click());
       $("#jsonFileInput").addEventListener("change", (event) => {
