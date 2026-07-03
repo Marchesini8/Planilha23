@@ -1132,6 +1132,19 @@
       display: none;
     }
 
+    .auth-error {
+      display: none;
+      margin-top: -2px;
+      color: #ff6375;
+      font-size: 0.9rem;
+      font-weight: 900;
+    }
+
+    .auth-error.show {
+      display: block;
+      animation: toastIn 0.2s var(--ease) both;
+    }
+
 
     .loader {
       display: grid;
@@ -1717,6 +1730,7 @@
           Senha
           <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Sua senha" required>
         </label>
+        <span class="auth-error" id="loginError">Login inválido</span>
         <button class="btn" type="submit">Entrar</button>
       </form>
 
@@ -1970,6 +1984,7 @@
 
     function setAuthMode(mode) {
       const isRegister = mode === "register";
+      $("#loginError").classList.remove("show");
       $("#loginForm").hidden = isRegister;
       $("#registerForm").hidden = !isRegister;
       $("#showLoginBtn").classList.toggle("active", !isRegister);
@@ -2504,6 +2519,7 @@
 
       $("#loginForm").addEventListener("submit", async (event) => {
         event.preventDefault();
+        $("#loginError").classList.remove("show");
         showLoading("Entrando...");
         try {
           const data = await apiRequest("/api/login", {
@@ -2516,6 +2532,7 @@
           saveAuthSession(data.user, data.token);
           showNotice("Login realizado com sucesso.");
         } catch (error) {
+          $("#loginError").classList.add("show");
           showNotice(error.message, true);
         } finally {
           hideLoading();
