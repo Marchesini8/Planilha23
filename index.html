@@ -1,0 +1,1785 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Planilha Financeira Pessoal</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #121a2f;
+      --panel-2: #17213a;
+      --line: rgba(255, 255, 255, 0.1);
+      --text: #eef4ff;
+      --muted: #95a3b9;
+      --green: #2ddf88;
+      --green-soft: rgba(45, 223, 136, 0.14);
+      --red: #ff5b6e;
+      --red-soft: rgba(255, 91, 110, 0.14);
+      --yellow: #ffd166;
+      --blue: #60a5fa;
+      --radius: 8px;
+      --shadow: 0 18px 45px rgba(0, 0, 0, 0.28);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top left, rgba(45, 223, 136, 0.16), transparent 32rem),
+        radial-gradient(circle at top right, rgba(96, 165, 250, 0.18), transparent 30rem),
+        var(--bg);
+      color: var(--text);
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.4;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .app {
+      width: min(1180px, 100%);
+      margin: 0 auto;
+      padding: 18px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .brand {
+      min-width: 0;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: clamp(1.35rem, 4vw, 2.4rem);
+      letter-spacing: 0;
+    }
+
+    .brand p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      position: sticky;
+      top: 0;
+      z-index: 8;
+      padding: 8px 0 14px;
+      background: linear-gradient(180deg, var(--bg), rgba(11, 16, 32, 0.86));
+      backdrop-filter: blur(14px);
+    }
+
+    .tab-btn {
+      border: 1px solid var(--line);
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.045);
+      border-radius: var(--radius);
+      padding: 11px 10px;
+      min-height: 44px;
+      white-space: nowrap;
+      transition: 0.2s ease;
+    }
+
+    .tab-btn.active {
+      color: #06120d;
+      background: var(--green);
+      border-color: var(--green);
+      font-weight: 800;
+    }
+
+    .tab {
+      display: none;
+    }
+
+    .tab.active {
+      display: block;
+      animation: fadeIn 0.2s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .summary-grid {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      margin-bottom: 14px;
+    }
+
+    .card,
+    .panel {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.026));
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .card {
+      min-height: 118px;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow: hidden;
+    }
+
+    .card span {
+      color: var(--muted);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+    }
+
+    .card strong {
+      display: block;
+      margin-top: 10px;
+      font-size: clamp(1.25rem, 2.4vw, 1.85rem);
+      letter-spacing: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .card small {
+      color: var(--muted);
+      margin-top: 7px;
+    }
+
+    .positive {
+      color: var(--green);
+    }
+
+    .negative {
+      color: var(--red);
+    }
+
+    .warning {
+      color: var(--yellow);
+    }
+
+    .panel {
+      padding: 16px;
+      margin-bottom: 14px;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .panel h2 {
+      margin: 0;
+      font-size: 1.05rem;
+    }
+
+    .two-cols {
+      grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+      align-items: start;
+    }
+
+    .charts-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .chart-box {
+      min-height: 280px;
+    }
+
+    .chart-wrap {
+      position: relative;
+      height: 235px;
+    }
+
+    form,
+    .filters,
+    .salary-row,
+    .goal-row,
+    .actions-row {
+      display: grid;
+      gap: 12px;
+    }
+
+    .form-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      display: grid;
+      gap: 7px;
+      color: var(--muted);
+      font-size: 0.88rem;
+      font-weight: 700;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 12px 12px;
+      color: var(--text);
+      background: rgba(8, 13, 27, 0.8);
+      outline: none;
+      min-height: 46px;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 88px;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: rgba(45, 223, 136, 0.8);
+      box-shadow: 0 0 0 3px rgba(45, 223, 136, 0.12);
+    }
+
+    .btn {
+      border: 0;
+      border-radius: var(--radius);
+      padding: 12px 14px;
+      min-height: 44px;
+      color: #06120d;
+      background: var(--green);
+      font-weight: 850;
+      transition: transform 0.16s ease, filter 0.16s ease;
+    }
+
+    .btn:hover {
+      filter: brightness(1.08);
+      transform: translateY(-1px);
+    }
+
+    .btn.secondary {
+      color: var(--text);
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+    }
+
+    .btn.danger {
+      color: #fff;
+      background: var(--red);
+    }
+
+    .btn.small {
+      padding: 8px 10px;
+      min-height: 36px;
+      font-size: 0.88rem;
+    }
+
+    .filters {
+      grid-template-columns: 1.2fr 1fr 1fr 1fr;
+      margin-bottom: 12px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 860px;
+      background: rgba(8, 13, 27, 0.58);
+    }
+
+    th,
+    td {
+      padding: 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--muted);
+      font-size: 0.76rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      background: rgba(255, 255, 255, 0.035);
+    }
+
+    td {
+      color: #dce7fa;
+      font-size: 0.92rem;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .table-actions {
+      display: flex;
+      gap: 7px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      border-radius: 999px;
+      padding: 5px 9px;
+      color: #dff7ec;
+      background: rgba(45, 223, 136, 0.12);
+      border: 1px solid rgba(45, 223, 136, 0.24);
+      font-size: 0.8rem;
+      font-weight: 800;
+    }
+
+    .progress {
+      height: 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+      margin: 12px 0;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      border-radius: inherit;
+      background: var(--green);
+      transition: width 0.25s ease, background 0.25s ease;
+    }
+
+    .goal-status {
+      display: grid;
+      gap: 8px;
+      color: var(--muted);
+    }
+
+    .notice {
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      z-index: 30;
+      display: none;
+      max-width: min(420px, calc(100vw - 32px));
+      padding: 13px 14px;
+      border-radius: var(--radius);
+      color: #06120d;
+      background: var(--green);
+      font-weight: 850;
+      box-shadow: var(--shadow);
+    }
+
+    .notice.show {
+      display: block;
+      animation: pop 0.2s ease;
+    }
+
+    .notice.error {
+      color: #fff;
+      background: var(--red);
+    }
+
+    @keyframes pop {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .empty {
+      padding: 24px;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    .file-input {
+      display: none;
+    }
+
+    @media (max-width: 1050px) {
+      .summary-grid,
+      .charts-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .two-cols {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .app {
+        padding: 12px;
+      }
+
+      .topbar {
+        align-items: flex-start;
+      }
+
+      .tabs {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .summary-grid,
+      .charts-grid,
+      .form-grid,
+      .filters {
+        grid-template-columns: 1fr;
+      }
+
+      .card {
+        min-height: 96px;
+      }
+
+      .panel {
+        padding: 13px;
+      }
+
+      .panel-header {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .actions-row {
+        grid-template-columns: 1fr;
+      }
+
+      .table-wrap {
+        border: 0;
+        overflow: visible;
+      }
+
+      table,
+      thead,
+      tbody,
+      tr,
+      th,
+      td {
+        display: block;
+        min-width: 0;
+      }
+
+      thead {
+        display: none;
+      }
+
+      tr {
+        margin-bottom: 12px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: rgba(8, 13, 27, 0.7);
+        overflow: hidden;
+      }
+
+      td {
+        display: grid;
+        grid-template-columns: 118px 1fr;
+        gap: 10px;
+        border-bottom: 1px solid var(--line);
+        overflow-wrap: anywhere;
+      }
+
+      td::before {
+        content: attr(data-label);
+        color: var(--muted);
+        font-weight: 850;
+        font-size: 0.76rem;
+        text-transform: uppercase;
+      }
+
+      .table-actions {
+        align-items: stretch;
+      }
+
+      .table-actions .btn {
+        flex: 1;
+      }
+    }
+
+    /* ===== Camada visual moderna: glassmorphism, animações e mobile refinado ===== */
+    :root {
+      --bg: #070b16;
+      --panel: rgba(16, 24, 43, 0.78);
+      --panel-2: rgba(21, 31, 54, 0.9);
+      --line: rgba(255, 255, 255, 0.12);
+      --line-strong: rgba(255, 255, 255, 0.18);
+      --text: #f4f8ff;
+      --muted: #9ba9c2;
+      --green: #35e59a;
+      --green-soft: rgba(53, 229, 154, 0.15);
+      --red: #ff6375;
+      --red-soft: rgba(255, 99, 117, 0.15);
+      --yellow: #ffd36e;
+      --blue: #65b8ff;
+      --blue-soft: rgba(101, 184, 255, 0.14);
+      --radius: 18px;
+      --radius-sm: 12px;
+      --shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+      --shadow-soft: 0 12px 30px rgba(0, 0, 0, 0.22);
+      --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      position: relative;
+      overflow-x: hidden;
+      background:
+        linear-gradient(135deg, rgba(7, 11, 22, 0.96), rgba(11, 17, 32, 0.98)),
+        radial-gradient(circle at 10% 10%, rgba(53, 229, 154, 0.22), transparent 34rem),
+        radial-gradient(circle at 88% 6%, rgba(101, 184, 255, 0.23), transparent 32rem),
+        radial-gradient(circle at 50% 100%, rgba(255, 211, 110, 0.08), transparent 30rem);
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+      background-size: 44px 44px;
+      mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.9), transparent 82%);
+    }
+
+    .app {
+      padding: clamp(14px, 3vw, 30px);
+    }
+
+    .topbar {
+      padding: clamp(16px, 3vw, 26px);
+      margin-bottom: 14px;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: linear-gradient(135deg, rgba(18, 28, 50, 0.82), rgba(10, 15, 28, 0.62));
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+      animation: sectionRise 0.55s var(--ease) both;
+    }
+
+    .brand h1 {
+      font-weight: 900;
+      line-height: 1.04;
+      text-wrap: balance;
+    }
+
+    .brand p {
+      max-width: 720px;
+      color: #b2bdd0;
+    }
+
+    .tabs {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      top: 0;
+      margin-bottom: 18px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: rgba(7, 11, 22, 0.72);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .tab-btn {
+      position: relative;
+      isolation: isolate;
+      border-radius: 15px;
+      color: #c5d0e5;
+      background: transparent;
+      font-weight: 800;
+      overflow: hidden;
+    }
+
+    .tab-btn::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      opacity: 0;
+      background: linear-gradient(135deg, var(--green), var(--blue));
+      transform: scaleX(0.72);
+      transition: opacity 0.24s var(--ease), transform 0.24s var(--ease);
+    }
+
+    .tab-btn:hover {
+      color: #fff;
+      border-color: var(--line-strong);
+      transform: translateY(-1px);
+    }
+
+    .tab-btn.active {
+      color: #04110c;
+      border-color: transparent;
+      background: transparent;
+      box-shadow: 0 12px 26px rgba(53, 229, 154, 0.24);
+    }
+
+    .tab-btn.active::before {
+      opacity: 1;
+      transform: scaleX(1);
+    }
+
+    .tab.active {
+      animation: tabSlide 0.32s var(--ease) both;
+    }
+
+    .summary-grid {
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .card,
+    .panel {
+      border: 1px solid var(--line);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.035)),
+        rgba(14, 22, 39, 0.72);
+      box-shadow: var(--shadow-soft);
+      backdrop-filter: blur(18px);
+    }
+
+    .panel {
+      padding: clamp(15px, 2.2vw, 22px);
+      margin-bottom: 16px;
+      animation: sectionRise 0.5s var(--ease) both;
+    }
+
+    .card {
+      position: relative;
+      min-height: 136px;
+      padding: 17px;
+      border-radius: 18px;
+      transform: translateY(0);
+      animation: cardIn 0.55s var(--ease) both;
+      transition: transform 0.22s var(--ease), box-shadow 0.22s var(--ease), border-color 0.22s var(--ease);
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      opacity: 0.55;
+      pointer-events: none;
+      background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.14), transparent 45%);
+    }
+
+    .card::after {
+      content: "";
+      position: absolute;
+      left: 16px;
+      right: 16px;
+      bottom: 0;
+      height: 2px;
+      opacity: 0.82;
+      background: linear-gradient(90deg, var(--green), var(--blue), transparent);
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(53, 229, 154, 0.34);
+      box-shadow: 0 22px 46px rgba(0, 0, 0, 0.34);
+    }
+
+    .card:nth-child(2) { animation-delay: 0.04s; }
+    .card:nth-child(3) { animation-delay: 0.08s; }
+    .card:nth-child(4) { animation-delay: 0.12s; }
+    .card:nth-child(5) { animation-delay: 0.16s; }
+    .card:nth-child(6) { animation-delay: 0.2s; }
+
+    .card-icon {
+      width: 38px;
+      height: 38px;
+      display: inline-grid;
+      place-items: center;
+      margin-bottom: 12px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.08);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      font-size: 1.15rem;
+    }
+
+    .card span {
+      color: #aab7cd;
+      letter-spacing: 0.06em;
+    }
+
+    .card strong {
+      line-height: 1.1;
+      font-weight: 950;
+    }
+
+    .panel-header h2 {
+      font-size: 1.12rem;
+      font-weight: 900;
+    }
+
+    .chart-box {
+      min-height: 310px;
+      transition: transform 0.22s var(--ease), border-color 0.22s var(--ease);
+    }
+
+    .chart-box:hover {
+      transform: translateY(-3px);
+      border-color: var(--line-strong);
+    }
+
+    .chart-wrap {
+      height: 248px;
+      animation: softScale 0.48s var(--ease) both;
+    }
+
+    input,
+    select,
+    textarea {
+      border-radius: 14px;
+      border-color: rgba(255, 255, 255, 0.13);
+      background: rgba(5, 10, 20, 0.72);
+      transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease), background 0.2s var(--ease);
+    }
+
+    input:hover,
+    select:hover,
+    textarea:hover {
+      border-color: rgba(255, 255, 255, 0.23);
+      background: rgba(9, 15, 29, 0.82);
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: rgba(53, 229, 154, 0.92);
+      box-shadow: 0 0 0 4px rgba(53, 229, 154, 0.13);
+      background: rgba(9, 16, 30, 0.96);
+    }
+
+    .btn {
+      position: relative;
+      overflow: hidden;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--green), #65f0b7);
+      box-shadow: 0 14px 26px rgba(53, 229, 154, 0.2);
+      transition: transform 0.18s var(--ease), filter 0.18s var(--ease), box-shadow 0.18s var(--ease);
+    }
+
+    .btn::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: -80%;
+      width: 52%;
+      opacity: 0;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.36), transparent);
+      transform: skewX(-18deg);
+      transition: left 0.45s var(--ease), opacity 0.2s var(--ease);
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 18px 34px rgba(53, 229, 154, 0.26);
+    }
+
+    .btn:hover::after {
+      left: 128%;
+      opacity: 1;
+    }
+
+    .btn.secondary {
+      color: #dfe8f8;
+      background: rgba(27, 38, 63, 0.96);
+      box-shadow: none;
+    }
+
+    .btn.secondary:hover {
+      box-shadow: 0 16px 28px rgba(0, 0, 0, 0.18);
+    }
+
+    .btn.danger {
+      background: linear-gradient(135deg, var(--red), #ff8795);
+      box-shadow: 0 14px 26px rgba(255, 99, 117, 0.2);
+    }
+
+    .table-wrap {
+      border-color: var(--line);
+      background: rgba(7, 11, 22, 0.38);
+    }
+
+    table {
+      background: transparent;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: rgba(16, 24, 43, 0.98);
+      color: #b8c4d8;
+    }
+
+    tbody tr {
+      transition: background 0.18s var(--ease), transform 0.18s var(--ease);
+    }
+
+    tbody tr:hover {
+      background: rgba(255, 255, 255, 0.045);
+    }
+
+    .badge {
+      border-color: rgba(53, 229, 154, 0.28);
+      background: linear-gradient(135deg, rgba(53, 229, 154, 0.17), rgba(101, 184, 255, 0.1));
+    }
+
+    .progress {
+      height: 14px;
+      background: rgba(255, 255, 255, 0.1);
+      box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.28);
+    }
+
+    .progress-bar {
+      background: linear-gradient(90deg, var(--green), var(--blue));
+      box-shadow: 0 0 18px rgba(53, 229, 154, 0.4);
+    }
+
+    .notice {
+      right: 18px;
+      bottom: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: linear-gradient(135deg, var(--green), #85f6c2);
+      box-shadow: 0 18px 45px rgba(0, 0, 0, 0.38);
+    }
+
+    .notice.show {
+      animation: toastIn 0.28s var(--ease), glowPulse 1.4s ease-in-out;
+    }
+
+    .loading-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      display: none;
+      place-items: center;
+      background: rgba(3, 7, 15, 0.42);
+      backdrop-filter: blur(8px);
+    }
+
+    .loading-overlay.show {
+      display: grid;
+      animation: fadeIn 0.18s ease both;
+    }
+
+    .loader {
+      display: grid;
+      gap: 12px;
+      place-items: center;
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(16, 24, 43, 0.88);
+      box-shadow: var(--shadow);
+      color: var(--text);
+      font-weight: 850;
+    }
+
+    .loader-ring {
+      width: 38px;
+      height: 38px;
+      border: 3px solid rgba(255, 255, 255, 0.16);
+      border-top-color: var(--green);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(16px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    @keyframes sectionRise {
+      from { opacity: 0; transform: translateY(14px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes tabSlide {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes softScale {
+      from { opacity: 0; transform: scale(0.985); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateY(12px) scale(0.96); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    @keyframes glowPulse {
+      50% { box-shadow: 0 18px 54px rgba(53, 229, 154, 0.26); }
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 1050px) {
+      .summary-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 720px) {
+      .topbar {
+        border-radius: 20px;
+      }
+
+      .tabs {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        position: sticky;
+        border-radius: 18px;
+      }
+
+      .summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .card {
+        min-height: 124px;
+        padding: 14px;
+      }
+
+      .card-icon {
+        width: 34px;
+        height: 34px;
+        margin-bottom: 8px;
+      }
+
+      .chart-wrap {
+        height: 230px;
+      }
+
+      td {
+        grid-template-columns: 104px minmax(0, 1fr);
+        padding: 12px;
+      }
+
+      tbody tr {
+        box-shadow: var(--shadow-soft);
+      }
+    }
+
+    @media (max-width: 430px) {
+      .summary-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .brand p {
+        font-size: 0.9rem;
+      }
+
+      .tab-btn {
+        padding-inline: 8px;
+        font-size: 0.9rem;
+      }
+
+      .notice {
+        right: 12px;
+        bottom: 12px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 0.001ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="brand">
+        <h1>Planilha Financeira</h1>
+        <p>Controle seu salário, gastos, metas e backups em um painel simples.</p>
+      </div>
+    </header>
+
+    <nav class="tabs" aria-label="Menu principal">
+      <button class="tab-btn active" data-tab="dashboard">📊 Dashboard</button>
+      <button class="tab-btn" data-tab="gastos">💳 Gastos</button>
+      <button class="tab-btn" data-tab="metas">🎯 Metas</button>
+      <button class="tab-btn" data-tab="config">⚙️ Configurações</button>
+    </nav>
+
+    <section id="dashboard" class="tab active">
+      <div class="grid summary-grid">
+        <article class="card">
+          <div class="card-icon">💰</div>
+          <span>Salário total</span>
+          <strong id="salaryCard">R$ 0,00</strong>
+          <small>Valor mensal cadastrado</small>
+        </article>
+        <article class="card">
+          <div class="card-icon">🧾</div>
+          <span>Total gasto no mês</span>
+          <strong id="monthSpentCard" class="negative">R$ 0,00</strong>
+          <small id="currentMonthLabel">Mês atual</small>
+        </article>
+        <article class="card">
+          <div class="card-icon">📈</div>
+          <span>Saldo restante</span>
+          <strong id="balanceCard" class="positive">R$ 0,00</strong>
+          <small>Salário menos gastos do mês</small>
+        </article>
+        <article class="card">
+          <div class="card-icon">⚡</div>
+          <span>Salário gasto</span>
+          <strong id="spentPercentCard">0%</strong>
+          <small>Percentual usado no mês</small>
+        </article>
+        <article class="card">
+          <div class="card-icon">🔥</div>
+          <span>Maior gasto</span>
+          <strong id="biggestExpenseCard">R$ 0,00</strong>
+          <small id="biggestExpenseName">Nenhum gasto</small>
+        </article>
+        <article class="card">
+          <div class="card-icon">🏷️</div>
+          <span>Categoria campeã</span>
+          <strong id="topCategoryCard">-</strong>
+          <small id="topCategoryValue">R$ 0,00</small>
+        </article>
+      </div>
+
+      <div class="grid charts-grid">
+        <section class="panel chart-box">
+          <div class="panel-header"><h2>Gastos por categoria</h2></div>
+          <div class="chart-wrap"><canvas id="categoryChart"></canvas></div>
+        </section>
+        <section class="panel chart-box">
+          <div class="panel-header"><h2>Forma de pagamento</h2></div>
+          <div class="chart-wrap"><canvas id="paymentChart"></canvas></div>
+        </section>
+        <section class="panel chart-box">
+          <div class="panel-header"><h2>Evolução diária</h2></div>
+          <div class="chart-wrap"><canvas id="dailyChart"></canvas></div>
+        </section>
+      </div>
+    </section>
+
+    <section id="gastos" class="tab">
+      <div class="grid two-cols">
+        <section class="panel">
+          <div class="panel-header">
+            <h2 id="expenseFormTitle">Adicionar gasto</h2>
+          </div>
+
+          <form id="expenseForm" class="form-grid">
+            <input type="hidden" id="expenseId">
+            <label>
+              Nome do gasto
+              <input id="expenseName" type="text" placeholder="Ex.: Mercado" required>
+            </label>
+            <label>
+              Valor
+              <input id="expenseValue" type="text" inputmode="decimal" placeholder="R$ 0,00" required>
+            </label>
+            <label>
+              Categoria
+              <select id="expenseCategory" required></select>
+            </label>
+            <label>
+              Data
+              <input id="expenseDate" type="date" required>
+            </label>
+            <label>
+              Forma de pagamento
+              <select id="expensePayment" required></select>
+            </label>
+            <label class="full">
+              Observação
+              <textarea id="expenseNote" placeholder="Opcional"></textarea>
+            </label>
+            <button class="btn full" type="submit" id="saveExpenseBtn">Salvar gasto</button>
+            <button class="btn secondary full" type="button" id="cancelEditBtn" hidden>Cancelar edição</button>
+          </form>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <h2>Lista de gastos</h2>
+            <span class="badge" id="expenseCount">0 gastos</span>
+          </div>
+
+          <div class="filters">
+            <label>
+              Pesquisar
+              <input id="searchInput" type="search" placeholder="Nome do gasto">
+            </label>
+            <label>
+              Categoria
+              <select id="categoryFilter"></select>
+            </label>
+            <label>
+              Mês
+              <input id="monthFilter" type="month">
+            </label>
+            <label>
+              Ordenar
+              <select id="sortSelect">
+                <option value="date-desc">Data mais recente</option>
+                <option value="date-asc">Data mais antiga</option>
+                <option value="value-desc">Maior valor</option>
+                <option value="value-asc">Menor valor</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Categoria</th>
+                  <th>Valor</th>
+                  <th>Data</th>
+                  <th>Pagamento</th>
+                  <th>Observação</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="expensesTable"></tbody>
+            </table>
+            <div class="empty" id="emptyState" hidden>Nenhum gasto encontrado.</div>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section id="metas" class="tab">
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Meta de economia mensal</h2>
+        </div>
+        <form id="goalForm" class="goal-row">
+          <label>
+            Valor que quero guardar
+            <input id="goalValue" type="text" inputmode="decimal" placeholder="R$ 0,00" required>
+          </label>
+          <button class="btn" type="submit">Salvar meta</button>
+        </form>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Progresso da meta</h2>
+          <span class="badge" id="goalBadge">Sem meta</span>
+        </div>
+        <div class="goal-status">
+          <strong id="goalSaved">Valor guardado estimado: R$ 0,00</strong>
+          <span id="goalMissing">Cadastre salário, gastos e meta para acompanhar seu progresso.</span>
+          <div class="progress" aria-hidden="true">
+            <div class="progress-bar" id="goalProgress"></div>
+          </div>
+          <span id="goalText">0% da meta concluída</span>
+        </div>
+      </section>
+    </section>
+
+    <section id="config" class="tab">
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Salário mensal</h2>
+        </div>
+        <form id="salaryForm" class="salary-row">
+          <label>
+            Informe ou edite seu salário
+            <input id="salaryInput" type="text" inputmode="decimal" placeholder="R$ 0,00" required>
+          </label>
+          <button class="btn" type="submit">Salvar salário</button>
+        </form>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Exportação e backup</h2>
+        </div>
+        <div class="actions-row">
+          <button class="btn secondary" type="button" id="exportCsvBtn">Exportar gastos em CSV</button>
+          <button class="btn secondary" type="button" id="backupJsonBtn">Baixar backup JSON</button>
+          <button class="btn secondary" type="button" id="importJsonBtn">Importar backup JSON</button>
+          <button class="btn danger" type="button" id="clearDataBtn">Limpar todos os dados</button>
+          <input class="file-input" id="jsonFileInput" type="file" accept="application/json,.json">
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <div id="notice" class="notice" role="status" aria-live="polite"></div>
+  <div id="loadingOverlay" class="loading-overlay" aria-live="polite" aria-hidden="true">
+    <div class="loader">
+      <div class="loader-ring"></div>
+      <span id="loadingText">Processando...</span>
+    </div>
+  </div>
+
+  <script>
+    // Estado principal salvo no LocalStorage.
+    const STORAGE_KEYS = {
+      salary: "finance_salary",
+      expenses: "finance_expenses",
+      goal: "finance_goal"
+    };
+
+    const categories = [
+      "Moradia", "Alimentação", "Transporte", "Lazer", "Contas",
+      "Cartão de crédito", "Saúde", "Investimentos", "Outros"
+    ];
+
+    const paymentMethods = ["Pix", "Débito", "Crédito", "Dinheiro", "Boleto", "Outro"];
+
+    let salary = Number(localStorage.getItem(STORAGE_KEYS.salary)) || 0;
+    let monthlyGoal = Number(localStorage.getItem(STORAGE_KEYS.goal)) || 0;
+    let expenses = loadExpenses();
+    let charts = {};
+
+    const $ = (selector) => document.querySelector(selector);
+
+    const moneyFormatter = new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL"
+    });
+
+    const monthFormatter = new Intl.DateTimeFormat("pt-BR", {
+      month: "long",
+      year: "numeric"
+    });
+
+    function formatMoney(value) {
+      return moneyFormatter.format(Number(value) || 0);
+    }
+
+    function loadExpenses() {
+      try {
+        const data = JSON.parse(localStorage.getItem(STORAGE_KEYS.expenses) || "[]");
+        return Array.isArray(data) ? data : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function generateId() {
+      return crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    }
+
+    function parseMoney(value) {
+      const clean = String(value || "").replace(/\D/g, "");
+      return clean ? Number(clean) / 100 : 0;
+    }
+
+    function applyMoneyMask(input) {
+      input.addEventListener("input", () => {
+        input.value = formatMoney(parseMoney(input.value));
+      });
+      input.addEventListener("focus", () => {
+        if (!parseMoney(input.value)) input.value = "";
+      });
+      input.addEventListener("blur", () => {
+        input.value = formatMoney(parseMoney(input.value));
+      });
+    }
+
+    function getToday() {
+      return new Date().toISOString().slice(0, 10);
+    }
+
+    function getCurrentMonth() {
+      return new Date().toISOString().slice(0, 7);
+    }
+
+    function saveData() {
+      localStorage.setItem(STORAGE_KEYS.salary, String(salary));
+      localStorage.setItem(STORAGE_KEYS.goal, String(monthlyGoal));
+      localStorage.setItem(STORAGE_KEYS.expenses, JSON.stringify(expenses));
+    }
+
+    function showNotice(message, isError = false) {
+      const notice = $("#notice");
+      notice.textContent = message;
+      notice.classList.toggle("error", isError);
+      notice.classList.add("show");
+      clearTimeout(showNotice.timer);
+      showNotice.timer = setTimeout(() => notice.classList.remove("show"), 2600);
+    }
+
+    function showLoading(message = "Processando...") {
+      $("#loadingText").textContent = message;
+      $("#loadingOverlay").classList.add("show");
+      $("#loadingOverlay").setAttribute("aria-hidden", "false");
+      clearTimeout(showLoading.timer);
+      showLoading.timer = setTimeout(hideLoading, 450);
+    }
+
+    function hideLoading() {
+      $("#loadingOverlay").classList.remove("show");
+      $("#loadingOverlay").setAttribute("aria-hidden", "true");
+    }
+
+    function fillSelect(select, items, firstLabel = "") {
+      select.innerHTML = firstLabel ? `<option value="">${firstLabel}</option>` : "";
+      items.forEach((item) => {
+        const option = document.createElement("option");
+        option.value = item;
+        option.textContent = item;
+        select.appendChild(option);
+      });
+    }
+
+    function expensesInMonth(month = getCurrentMonth()) {
+      return expenses.filter((expense) => expense.date && expense.date.slice(0, 7) === month);
+    }
+
+    function sumExpenses(list) {
+      return list.reduce((total, expense) => total + Number(expense.value), 0);
+    }
+
+    function groupBy(list, key) {
+      return list.reduce((acc, expense) => {
+        acc[expense[key]] = (acc[expense[key]] || 0) + Number(expense.value);
+        return acc;
+      }, {});
+    }
+
+    function updateSummary() {
+      const month = getCurrentMonth();
+      const monthExpenses = expensesInMonth(month);
+      const totalSpent = sumExpenses(monthExpenses);
+      const balance = salary - totalSpent;
+      const percent = salary > 0 ? Math.min((totalSpent / salary) * 100, 999) : 0;
+      const biggest = monthExpenses.reduce((max, expense) => Number(expense.value) > Number(max.value || 0) ? expense : max, {});
+      const categoryTotals = groupBy(monthExpenses, "category");
+      const topCategory = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1])[0];
+
+      $("#salaryCard").textContent = formatMoney(salary);
+      $("#monthSpentCard").textContent = formatMoney(totalSpent);
+      $("#balanceCard").textContent = formatMoney(balance);
+      $("#balanceCard").className = balance >= 0 ? "positive" : "negative";
+      $("#spentPercentCard").textContent = `${percent.toFixed(1)}%`;
+      $("#spentPercentCard").className = percent <= 70 ? "positive" : percent <= 90 ? "warning" : "negative";
+      $("#biggestExpenseCard").textContent = formatMoney(biggest.value || 0);
+      $("#biggestExpenseName").textContent = biggest.name || "Nenhum gasto";
+      $("#topCategoryCard").textContent = topCategory ? topCategory[0] : "-";
+      $("#topCategoryValue").textContent = formatMoney(topCategory ? topCategory[1] : 0);
+      $("#currentMonthLabel").textContent = monthFormatter.format(new Date(`${month}-02T12:00:00`));
+
+      updateGoal();
+      updateCharts();
+    }
+
+    function getFilteredExpenses() {
+      const search = $("#searchInput").value.trim().toLowerCase();
+      const category = $("#categoryFilter").value;
+      const month = $("#monthFilter").value;
+      const sort = $("#sortSelect").value;
+
+      return expenses
+        .filter((expense) => !search || expense.name.toLowerCase().includes(search))
+        .filter((expense) => !category || expense.category === category)
+        .filter((expense) => !month || expense.date.slice(0, 7) === month)
+        .sort((a, b) => {
+          if (sort === "date-asc") return a.date.localeCompare(b.date);
+          if (sort === "value-desc") return b.value - a.value;
+          if (sort === "value-asc") return a.value - b.value;
+          return b.date.localeCompare(a.date);
+        });
+    }
+
+    function renderExpensesTable() {
+      const tbody = $("#expensesTable");
+      const list = getFilteredExpenses();
+      tbody.innerHTML = "";
+      $("#expenseCount").textContent = `${list.length} ${list.length === 1 ? "gasto" : "gastos"}`;
+      $("#emptyState").hidden = list.length > 0;
+
+      list.forEach((expense) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td data-label="Nome">${escapeHtml(expense.name)}</td>
+          <td data-label="Categoria"><span class="badge">${escapeHtml(expense.category)}</span></td>
+          <td data-label="Valor" class="negative">${formatMoney(expense.value)}</td>
+          <td data-label="Data">${formatDate(expense.date)}</td>
+          <td data-label="Pagamento">${escapeHtml(expense.payment)}</td>
+          <td data-label="Observação">${escapeHtml(expense.note || "-")}</td>
+          <td data-label="Ações">
+            <div class="table-actions">
+              <button class="btn secondary small" type="button" data-edit="${expense.id}">Editar</button>
+              <button class="btn danger small" type="button" data-delete="${expense.id}">Excluir</button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, (char) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;"
+      }[char]));
+    }
+
+    function formatDate(date) {
+      if (!date) return "-";
+      const [year, month, day] = date.split("-");
+      return `${day}/${month}/${year}`;
+    }
+
+    function handleExpenseSubmit(event) {
+      event.preventDefault();
+      const id = $("#expenseId").value;
+      const name = $("#expenseName").value.trim();
+      const value = parseMoney($("#expenseValue").value);
+      const category = $("#expenseCategory").value;
+      const date = $("#expenseDate").value;
+      const payment = $("#expensePayment").value;
+      const note = $("#expenseNote").value.trim();
+
+      if (!name || !category || !date || !payment || value <= 0) {
+        showNotice("Preencha os campos obrigatórios com valores válidos.", true);
+        return;
+      }
+
+      if (id) {
+        showLoading("Salvando edição...");
+        expenses = expenses.map((expense) => expense.id === id ? { id, name, value, category, date, payment, note } : expense);
+        showNotice("Gasto editado com sucesso.");
+      } else {
+        showLoading("Salvando gasto...");
+        expenses.push({ id: generateId(), name, value, category, date, payment, note });
+        showNotice("Gasto salvo com sucesso.");
+      }
+
+      saveData();
+      resetExpenseForm();
+      refreshAll();
+    }
+
+    function editExpense(id) {
+      const expense = expenses.find((item) => item.id === id);
+      if (!expense) return;
+
+      $("#expenseId").value = expense.id;
+      $("#expenseName").value = expense.name;
+      $("#expenseValue").value = formatMoney(expense.value);
+      $("#expenseCategory").value = expense.category;
+      $("#expenseDate").value = expense.date;
+      $("#expensePayment").value = expense.payment;
+      $("#expenseNote").value = expense.note || "";
+      $("#expenseFormTitle").textContent = "Editar gasto";
+      $("#saveExpenseBtn").textContent = "Salvar edição";
+      $("#cancelEditBtn").hidden = false;
+      switchTab("gastos");
+      $("#expenseName").focus();
+    }
+
+    function deleteExpense(id) {
+      const expense = expenses.find((item) => item.id === id);
+      if (!expense) return;
+      if (!confirm(`Excluir o gasto "${expense.name}"?`)) return;
+      showLoading("Excluindo gasto...");
+      expenses = expenses.filter((item) => item.id !== id);
+      saveData();
+      refreshAll();
+      showNotice("Gasto excluído.");
+    }
+
+    function resetExpenseForm() {
+      $("#expenseForm").reset();
+      $("#expenseId").value = "";
+      $("#expenseDate").value = getToday();
+      $("#expenseFormTitle").textContent = "Adicionar gasto";
+      $("#saveExpenseBtn").textContent = "Salvar gasto";
+      $("#cancelEditBtn").hidden = true;
+    }
+
+    function updateGoal() {
+      const monthSpent = sumExpenses(expensesInMonth());
+      const saved = salary - monthSpent;
+      const missing = Math.max(monthlyGoal - saved, 0);
+      const progress = monthlyGoal > 0 ? Math.max(Math.min((saved / monthlyGoal) * 100, 100), 0) : 0;
+      const insideGoal = monthlyGoal > 0 && saved >= monthlyGoal;
+
+      $("#goalValue").value = monthlyGoal ? formatMoney(monthlyGoal) : "";
+      $("#goalSaved").textContent = `Valor guardado estimado: ${formatMoney(saved)}`;
+      $("#goalMissing").textContent = monthlyGoal
+        ? (insideGoal ? `Meta batida. Você passou da meta em ${formatMoney(saved - monthlyGoal)}.` : `Faltam ${formatMoney(missing)} para bater a meta.`)
+        : "Cadastre sua meta para acompanhar o progresso.";
+      $("#goalText").textContent = `${progress.toFixed(1)}% da meta concluída`;
+      $("#goalBadge").textContent = !monthlyGoal ? "Sem meta" : insideGoal ? "Dentro da meta" : "Fora da meta";
+      $("#goalBadge").style.background = insideGoal ? "var(--green-soft)" : "var(--red-soft)";
+      $("#goalProgress").style.width = `${progress}%`;
+      $("#goalProgress").style.background = insideGoal ? "var(--green)" : "var(--red)";
+    }
+
+    function updateCharts() {
+      if (!window.Chart) return;
+      const monthExpenses = expensesInMonth();
+      const categoryTotals = groupBy(monthExpenses, "category");
+      const paymentTotals = groupBy(monthExpenses, "payment");
+      const dailyTotals = {};
+
+      monthExpenses.forEach((expense) => {
+        const day = expense.date.slice(8, 10);
+        dailyTotals[day] = (dailyTotals[day] || 0) + Number(expense.value);
+      });
+
+      renderChart("categoryChart", "doughnut", Object.keys(categoryTotals), Object.values(categoryTotals));
+      renderChart("paymentChart", "bar", Object.keys(paymentTotals), Object.values(paymentTotals));
+      renderChart("dailyChart", "line", Object.keys(dailyTotals).sort(), Object.keys(dailyTotals).sort().map((day) => dailyTotals[day]));
+    }
+
+    function renderChart(id, type, labels, data) {
+      const ctx = document.getElementById(id);
+      if (charts[id]) charts[id].destroy();
+
+      charts[id] = new Chart(ctx, {
+        type,
+        data: {
+          labels: labels.length ? labels : ["Sem dados"],
+          datasets: [{
+            data: data.length ? data : [0],
+            label: "Gastos",
+            borderColor: "#2ddf88",
+            backgroundColor: ["#2ddf88", "#60a5fa", "#ffd166", "#ff5b6e", "#a78bfa", "#22d3ee", "#f97316", "#f472b6", "#94a3b8"],
+            tension: 0.35,
+            fill: type === "line"
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color: "#dce7fa" } }
+          },
+          scales: type === "doughnut" ? {} : {
+            x: { ticks: { color: "#95a3b9" }, grid: { color: "rgba(255,255,255,0.07)" } },
+            y: { ticks: { color: "#95a3b9" }, grid: { color: "rgba(255,255,255,0.07)" } }
+          }
+        }
+      });
+    }
+
+    function exportCsv() {
+      if (!expenses.length) {
+        showNotice("Não há gastos para exportar.", true);
+        return;
+      }
+      const headers = ["Nome", "Categoria", "Valor", "Data", "Forma de pagamento", "Observação"];
+      const rows = expenses.map((expense) => [
+        expense.name,
+        expense.category,
+        String(expense.value).replace(".", ","),
+        expense.date,
+        expense.payment,
+        expense.note || ""
+      ]);
+      const csv = [headers, ...rows]
+        .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(";"))
+        .join("\n");
+      downloadFile(`gastos-${getCurrentMonth()}.csv`, "\uFEFF" + csv, "text/csv;charset=utf-8");
+      showNotice("CSV exportado.");
+    }
+
+    function backupJson() {
+      const data = JSON.stringify({ salary, monthlyGoal, expenses, exportedAt: new Date().toISOString() }, null, 2);
+      downloadFile(`backup-financeiro-${getToday()}.json`, data, "application/json");
+      showNotice("Backup JSON baixado.");
+    }
+
+    function importJson(file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          showLoading("Importando backup...");
+          const data = JSON.parse(reader.result);
+          if (!Array.isArray(data.expenses)) throw new Error("Backup inválido");
+          salary = Number(data.salary) || 0;
+          monthlyGoal = Number(data.monthlyGoal) || 0;
+          expenses = data.expenses.map((expense) => ({
+            id: expense.id || generateId(),
+            name: String(expense.name || ""),
+            value: Number(expense.value) || 0,
+            category: categories.includes(expense.category) ? expense.category : "Outros",
+            date: expense.date || getToday(),
+            payment: paymentMethods.includes(expense.payment) ? expense.payment : "Outro",
+            note: String(expense.note || "")
+          })).filter((expense) => expense.name && expense.value > 0);
+          saveData();
+          hydrateForms();
+          refreshAll();
+          showNotice("Backup importado com sucesso.");
+        } catch {
+          showNotice("Não foi possível importar esse arquivo JSON.", true);
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function downloadFile(filename, content, type) {
+      const blob = new Blob([content], { type });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function clearAllData() {
+      if (!confirm("Tem certeza que deseja limpar salário, gastos e meta?")) return;
+      if (!confirm("Essa ação não pode ser desfeita. Deseja continuar?")) return;
+      showLoading("Limpando dados...");
+      salary = 0;
+      monthlyGoal = 0;
+      expenses = [];
+      saveData();
+      hydrateForms();
+      refreshAll();
+      showNotice("Todos os dados foram limpos.");
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll(".tab-btn").forEach((btn) => btn.classList.toggle("active", btn.dataset.tab === tabId));
+      document.querySelectorAll(".tab").forEach((tab) => tab.classList.toggle("active", tab.id === tabId));
+    }
+
+    function hydrateForms() {
+      $("#salaryInput").value = salary ? formatMoney(salary) : "";
+      $("#goalValue").value = monthlyGoal ? formatMoney(monthlyGoal) : "";
+      $("#monthFilter").value = getCurrentMonth();
+      resetExpenseForm();
+    }
+
+    function refreshAll() {
+      renderExpensesTable();
+      updateSummary();
+    }
+
+    // Eventos da interface.
+    function bindEvents() {
+      document.querySelectorAll(".tab-btn").forEach((button) => {
+        button.addEventListener("click", () => switchTab(button.dataset.tab));
+      });
+
+      $("#salaryForm").addEventListener("submit", (event) => {
+        event.preventDefault();
+        const value = parseMoney($("#salaryInput").value);
+        if (value <= 0) {
+          showNotice("Informe um salário maior que zero.", true);
+          return;
+        }
+        salary = value;
+        showLoading("Salvando salário...");
+        saveData();
+        refreshAll();
+        showNotice("Salário salvo.");
+      });
+
+      $("#goalForm").addEventListener("submit", (event) => {
+        event.preventDefault();
+        const value = parseMoney($("#goalValue").value);
+        if (value <= 0) {
+          showNotice("Informe uma meta maior que zero.", true);
+          return;
+        }
+        monthlyGoal = value;
+        showLoading("Salvando meta...");
+        saveData();
+        refreshAll();
+        showNotice("Meta salva.");
+      });
+
+      $("#expenseForm").addEventListener("submit", handleExpenseSubmit);
+      $("#cancelEditBtn").addEventListener("click", resetExpenseForm);
+
+      $("#expensesTable").addEventListener("click", (event) => {
+        const editId = event.target.dataset.edit;
+        const deleteId = event.target.dataset.delete;
+        if (editId) editExpense(editId);
+        if (deleteId) deleteExpense(deleteId);
+      });
+
+      ["searchInput", "categoryFilter", "monthFilter", "sortSelect"].forEach((id) => {
+        document.getElementById(id).addEventListener("input", renderExpensesTable);
+      });
+
+      $("#exportCsvBtn").addEventListener("click", exportCsv);
+      $("#backupJsonBtn").addEventListener("click", backupJson);
+      $("#importJsonBtn").addEventListener("click", () => $("#jsonFileInput").click());
+      $("#jsonFileInput").addEventListener("change", (event) => {
+        const file = event.target.files[0];
+        if (file) importJson(file);
+        event.target.value = "";
+      });
+      $("#clearDataBtn").addEventListener("click", clearAllData);
+    }
+
+    function init() {
+      fillSelect($("#expenseCategory"), categories);
+      fillSelect($("#categoryFilter"), categories, "Todas");
+      fillSelect($("#expensePayment"), paymentMethods);
+      applyMoneyMask($("#salaryInput"));
+      applyMoneyMask($("#expenseValue"));
+      applyMoneyMask($("#goalValue"));
+      bindEvents();
+      hydrateForms();
+      refreshAll();
+    }
+
+    init();
+  </script>
+</body>
+</html>
