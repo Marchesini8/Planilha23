@@ -81,6 +81,29 @@
       font-size: 0.95rem;
     }
 
+    .auth-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .user-pill {
+      display: none;
+      max-width: 230px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.06);
+      font-size: 0.88rem;
+      font-weight: 800;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
     .tabs {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -903,6 +926,90 @@
       animation: fadeIn 0.18s ease both;
     }
 
+    .auth-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: none;
+      place-items: center;
+      padding: 18px;
+      background:
+        radial-gradient(circle at 18% 12%, rgba(53, 229, 154, 0.18), transparent 26rem),
+        rgba(3, 7, 15, 0.72);
+      backdrop-filter: blur(12px);
+    }
+
+    .auth-modal.show {
+      display: grid;
+      animation: fadeIn 0.22s ease both;
+    }
+
+    .auth-box {
+      width: min(460px, 100%);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      padding: 22px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.04)),
+        rgba(11, 17, 32, 0.96);
+      box-shadow: var(--shadow);
+      animation: cardIn 0.36s var(--ease) both;
+    }
+
+    .auth-box h2 {
+      margin: 0;
+      font-size: 1.45rem;
+    }
+
+    .auth-box p {
+      margin: 8px 0 16px;
+      color: var(--muted);
+    }
+
+    .auth-toggle {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      padding: 6px;
+      margin-bottom: 14px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .auth-toggle button {
+      border: 0;
+      border-radius: 12px;
+      padding: 10px;
+      color: var(--muted);
+      background: transparent;
+      font-weight: 900;
+    }
+
+    .auth-toggle button.active {
+      color: #06120d;
+      background: linear-gradient(135deg, var(--green), var(--blue));
+    }
+
+    .auth-form {
+      display: grid;
+      gap: 12px;
+    }
+
+    .auth-form[hidden] {
+      display: none;
+    }
+
+    .auth-footer {
+      display: flex;
+      gap: 10px;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+
     .loader {
       display: grid;
       gap: 12px;
@@ -967,6 +1074,17 @@
     @media (max-width: 720px) {
       .topbar {
         border-radius: 20px;
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .auth-actions {
+        justify-content: stretch;
+      }
+
+      .auth-actions .btn,
+      .user-pill {
+        width: 100%;
       }
 
       .tabs {
@@ -1148,6 +1266,11 @@
       <div class="brand">
         <h1>Planilha Financeira</h1>
         <p>Controle seu salário, gastos, metas e backups em um painel simples.</p>
+      </div>
+      <div class="auth-actions">
+        <span class="user-pill" id="userPill"></span>
+        <button class="btn secondary small" type="button" id="openAuthBtn">Criar conta / Entrar</button>
+        <button class="btn secondary small" type="button" id="logoutBtn" hidden>Sair</button>
       </div>
     </header>
 
@@ -1371,12 +1494,59 @@
     </div>
   </div>
 
+  <div id="authModal" class="auth-modal" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+    <div class="auth-box">
+      <h2 id="authTitle">Acesse sua planilha</h2>
+      <p>Crie uma conta ou entre para preparar seus dados para sincronização com PostgreSQL.</p>
+
+      <div class="auth-toggle" aria-label="Alternar login e cadastro">
+        <button class="active" type="button" id="showLoginBtn">Entrar</button>
+        <button type="button" id="showRegisterBtn">Criar conta</button>
+      </div>
+
+      <form id="loginForm" class="auth-form">
+        <label>
+          E-mail
+          <input id="loginEmail" type="email" autocomplete="email" placeholder="voce@email.com" required>
+        </label>
+        <label>
+          Senha
+          <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Sua senha" required>
+        </label>
+        <button class="btn" type="submit">Entrar</button>
+      </form>
+
+      <form id="registerForm" class="auth-form" hidden>
+        <label>
+          Nome
+          <input id="registerName" type="text" autocomplete="name" placeholder="Seu nome" required>
+        </label>
+        <label>
+          E-mail
+          <input id="registerEmail" type="email" autocomplete="email" placeholder="voce@email.com" required>
+        </label>
+        <label>
+          Senha
+          <input id="registerPassword" type="password" autocomplete="new-password" placeholder="Mínimo 6 caracteres" required minlength="6">
+        </label>
+        <button class="btn" type="submit">Criar conta</button>
+      </form>
+
+      <div class="auth-footer">
+        <span>Seus dados financeiros continuam salvos no navegador.</span>
+        <button class="btn secondary small" type="button" id="closeAuthBtn">Agora não</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // Estado principal salvo no LocalStorage.
     const STORAGE_KEYS = {
       salary: "finance_salary",
       expenses: "finance_expenses",
-      goal: "finance_goal"
+      goal: "finance_goal",
+      authToken: "finance_auth_token",
+      authUser: "finance_auth_user"
     };
 
     const categories = [
@@ -1389,6 +1559,8 @@
     let salary = Number(localStorage.getItem(STORAGE_KEYS.salary)) || 0;
     let monthlyGoal = Number(localStorage.getItem(STORAGE_KEYS.goal)) || 0;
     let expenses = loadExpenses();
+    let authToken = localStorage.getItem(STORAGE_KEYS.authToken) || "";
+    let authUser = loadAuthUser();
     let charts = {};
 
     const $ = (selector) => document.querySelector(selector);
@@ -1413,6 +1585,14 @@
         return Array.isArray(data) ? data : [];
       } catch {
         return [];
+      }
+    }
+
+    function loadAuthUser() {
+      try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEYS.authUser) || "null");
+      } catch {
+        return null;
       }
     }
 
@@ -1471,6 +1651,81 @@
     function hideLoading() {
       $("#loadingOverlay").classList.remove("show");
       $("#loadingOverlay").setAttribute("aria-hidden", "true");
+    }
+
+    async function apiRequest(path, options = {}) {
+      const response = await fetch(path, {
+        ...options,
+        headers: {
+          "Content-Type": "application/json",
+          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+          ...(options.headers || {})
+        }
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || "Não foi possível concluir a ação.");
+      return data;
+    }
+
+    function saveAuthSession(user, token) {
+      authUser = user;
+      authToken = token;
+      localStorage.setItem(STORAGE_KEYS.authUser, JSON.stringify(user));
+      localStorage.setItem(STORAGE_KEYS.authToken, token);
+      updateAuthUi();
+      closeAuthModal();
+    }
+
+    function clearAuthSession() {
+      authUser = null;
+      authToken = "";
+      localStorage.removeItem(STORAGE_KEYS.authUser);
+      localStorage.removeItem(STORAGE_KEYS.authToken);
+      updateAuthUi();
+    }
+
+    function updateAuthUi() {
+      const hasUser = Boolean(authUser);
+      $("#userPill").style.display = hasUser ? "inline-flex" : "none";
+      $("#userPill").textContent = hasUser ? `🏦 ${authUser.name || authUser.email}` : "";
+      $("#openAuthBtn").hidden = hasUser;
+      $("#logoutBtn").hidden = !hasUser;
+    }
+
+    function openAuthModal(mode = "login") {
+      setAuthMode(mode);
+      $("#authModal").classList.add("show");
+    }
+
+    function closeAuthModal() {
+      $("#authModal").classList.remove("show");
+    }
+
+    function setAuthMode(mode) {
+      const isRegister = mode === "register";
+      $("#loginForm").hidden = isRegister;
+      $("#registerForm").hidden = !isRegister;
+      $("#showLoginBtn").classList.toggle("active", !isRegister);
+      $("#showRegisterBtn").classList.toggle("active", isRegister);
+      $("#authTitle").textContent = isRegister ? "Crie sua conta" : "Acesse sua planilha";
+    }
+
+    async function checkCurrentSession() {
+      updateAuthUi();
+      if (!authToken) {
+        openAuthModal("login");
+        return;
+      }
+
+      try {
+        const data = await apiRequest("/api/me", { method: "GET" });
+        authUser = data.user;
+        localStorage.setItem(STORAGE_KEYS.authUser, JSON.stringify(authUser));
+        updateAuthUi();
+      } catch {
+        clearAuthSession();
+        openAuthModal("login");
+      }
     }
 
     function fillSelect(select, items, firstLabel = "") {
@@ -1916,6 +2171,66 @@
 
     // Eventos da interface.
     function bindEvents() {
+      $("#openAuthBtn").addEventListener("click", () => openAuthModal("register"));
+      $("#closeAuthBtn").addEventListener("click", closeAuthModal);
+      $("#showLoginBtn").addEventListener("click", () => setAuthMode("login"));
+      $("#showRegisterBtn").addEventListener("click", () => setAuthMode("register"));
+
+      $("#loginForm").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        showLoading("Entrando...");
+        try {
+          const data = await apiRequest("/api/login", {
+            method: "POST",
+            body: JSON.stringify({
+              email: $("#loginEmail").value,
+              password: $("#loginPassword").value
+            })
+          });
+          saveAuthSession(data.user, data.token);
+          showNotice("Login realizado com sucesso.");
+        } catch (error) {
+          showNotice(error.message, true);
+        } finally {
+          hideLoading();
+        }
+      });
+
+      $("#registerForm").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        showLoading("Criando conta...");
+        try {
+          const data = await apiRequest("/api/register", {
+            method: "POST",
+            body: JSON.stringify({
+              name: $("#registerName").value,
+              email: $("#registerEmail").value,
+              password: $("#registerPassword").value
+            })
+          });
+          saveAuthSession(data.user, data.token);
+          showNotice("Conta criada com sucesso.");
+        } catch (error) {
+          showNotice(error.message, true);
+        } finally {
+          hideLoading();
+        }
+      });
+
+      $("#logoutBtn").addEventListener("click", async () => {
+        showLoading("Saindo...");
+        try {
+          await apiRequest("/api/logout", { method: "POST", body: "{}" });
+        } catch {
+          // Mesmo se a sessão no servidor já tiver expirado, limpamos a sessão local.
+        } finally {
+          clearAuthSession();
+          hideLoading();
+          openAuthModal("login");
+          showNotice("Você saiu da conta.");
+        }
+      });
+
       document.querySelectorAll(".tab-btn").forEach((button) => {
         button.addEventListener("click", () => switchTab(button.dataset.tab));
       });
@@ -1984,6 +2299,7 @@
       bindEvents();
       hydrateForms();
       refreshAll();
+      checkCurrentSession();
     }
 
     init();
