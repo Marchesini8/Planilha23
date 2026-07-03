@@ -75,12 +75,6 @@
       letter-spacing: 0;
     }
 
-    .brand p {
-      margin: 4px 0 0;
-      color: var(--muted);
-      font-size: 0.95rem;
-    }
-
     .auth-actions {
       display: flex;
       align-items: center;
@@ -107,11 +101,11 @@
     .tabs {
       display: flex;
       justify-content: flex-end;
-      position: sticky;
-      top: 0;
+      position: relative;
+      top: auto;
       z-index: 8;
-      padding: 8px 0 14px;
-      background: linear-gradient(180deg, var(--bg), rgba(11, 16, 32, 0.86));
+      padding: 0;
+      background: transparent;
       backdrop-filter: blur(14px);
     }
 
@@ -732,13 +726,13 @@
     }
 
     .topbar {
-      padding: clamp(16px, 3vw, 26px);
+      padding: 8px 0 16px;
       margin-bottom: 14px;
-      border: 1px solid var(--line);
-      border-radius: 24px;
-      background: linear-gradient(135deg, rgba(18, 28, 50, 0.82), rgba(10, 15, 28, 0.62));
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(18px);
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+      backdrop-filter: none;
       animation: sectionRise 0.55s var(--ease) both;
     }
 
@@ -746,21 +740,17 @@
       font-weight: 900;
       line-height: 1.04;
       text-wrap: balance;
-    }
-
-    .brand p {
-      max-width: 720px;
-      color: #b2bdd0;
+      font-size: clamp(1.35rem, 3vw, 2rem);
     }
 
     .tabs {
       top: 0;
-      margin-bottom: 18px;
-      padding: 10px 0;
-      border: 1px solid var(--line);
-      border-radius: 20px;
-      background: rgba(7, 11, 22, 0.72);
-      box-shadow: var(--shadow-soft);
+      margin-bottom: 0;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
     }
 
     .tab-btn {
@@ -1206,18 +1196,19 @@
 
     @media (max-width: 720px) {
       .topbar {
-        border-radius: 20px;
-        align-items: stretch;
-        flex-direction: column;
+        border-radius: 0;
+        align-items: center;
+        flex-direction: row;
+        flex-wrap: wrap;
       }
 
       .auth-actions {
-        justify-content: stretch;
+        justify-content: flex-end;
+        margin-left: auto;
       }
 
-      .auth-actions .btn,
-      .user-pill {
-        width: 100%;
+      .auth-actions .btn {
+        width: auto;
       }
 
       .tabs {
@@ -1263,8 +1254,8 @@
         grid-template-columns: 1fr;
       }
 
-      .brand p {
-        font-size: 0.9rem;
+      .brand h1 {
+        font-size: 1.28rem;
       }
 
       .tab-btn {
@@ -1457,28 +1448,25 @@
   <main class="app">
     <header class="topbar">
       <div class="brand">
-        <h1>Planilha Financeira</h1>
-        <p>Controle seu salário, gastos, metas e backups em um painel simples.</p>
+        <h1>Olá, <span id="greetingName">visitante</span></h1>
       </div>
       <div class="auth-actions">
-        <span class="user-pill" id="userPill"></span>
+        <nav class="tabs" aria-label="Menu principal">
+          <button class="menu-toggle" type="button" id="menuToggle" aria-expanded="false" aria-controls="menuPanel">
+            <span class="hamburger" aria-hidden="true"><span></span><span></span><span></span></span>
+            Menu
+          </button>
+          <div class="menu-panel" id="menuPanel">
+            <button class="tab-btn active" data-tab="dashboard">💹 Dashboard</button>
+            <button class="tab-btn" data-tab="gastos">💳 Gastos</button>
+            <button class="tab-btn" data-tab="metas">💵 Metas</button>
+            <button class="tab-btn" data-tab="config">🏦 Configurações</button>
+          </div>
+        </nav>
         <button class="btn secondary small" type="button" id="openAuthBtn">Criar conta / Entrar</button>
         <button class="btn secondary small" type="button" id="logoutBtn" hidden>Sair</button>
       </div>
     </header>
-
-    <nav class="tabs" aria-label="Menu principal">
-      <button class="menu-toggle" type="button" id="menuToggle" aria-expanded="false" aria-controls="menuPanel">
-        <span class="hamburger" aria-hidden="true"><span></span><span></span><span></span></span>
-        Menu
-      </button>
-      <div class="menu-panel" id="menuPanel">
-        <button class="tab-btn active" data-tab="dashboard">💹 Dashboard</button>
-        <button class="tab-btn" data-tab="gastos">💳 Gastos</button>
-        <button class="tab-btn" data-tab="metas">💵 Metas</button>
-        <button class="tab-btn" data-tab="config">🏦 Configurações</button>
-      </div>
-    </nav>
 
     <section id="dashboard" class="tab active">
       <div class="grid summary-grid">
@@ -1965,8 +1953,8 @@
 
     function updateAuthUi() {
       const hasUser = Boolean(authUser);
-      $("#userPill").style.display = hasUser ? "inline-flex" : "none";
-      $("#userPill").textContent = hasUser ? `🏦 ${authUser.name || authUser.email}` : "";
+      const displayName = hasUser ? String(authUser.name || authUser.email || "usuário").split(" ")[0] : "visitante";
+      $("#greetingName").textContent = displayName;
       $("#openAuthBtn").hidden = hasUser;
       $("#logoutBtn").hidden = !hasUser;
     }
