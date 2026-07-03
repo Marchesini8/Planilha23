@@ -244,6 +244,77 @@
       height: 235px;
     }
 
+    .chart-insights {
+      display: grid;
+      gap: 9px;
+      margin-top: 14px;
+    }
+
+    .insight-row {
+      display: grid;
+      grid-template-columns: 12px minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 9px;
+      padding: 9px 10px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.035);
+      color: #dce7fa;
+      font-size: 0.88rem;
+    }
+
+    .insight-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      box-shadow: 0 0 12px currentColor;
+    }
+
+    .insight-label {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-weight: 800;
+    }
+
+    .insight-value {
+      color: var(--muted);
+      font-weight: 850;
+      white-space: nowrap;
+    }
+
+    .chart-summary {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .mini-metric {
+      padding: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.14);
+    }
+
+    .mini-metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 850;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .mini-metric strong {
+      display: block;
+      margin-top: 5px;
+      color: var(--text);
+      font-size: 0.95rem;
+      overflow-wrap: anywhere;
+    }
+
     form,
     .filters,
     .salary-row,
@@ -1121,6 +1192,10 @@
         height: 230px;
       }
 
+      .chart-summary {
+        grid-template-columns: 1fr;
+      }
+
       td {
         grid-template-columns: 104px minmax(0, 1fr);
         padding: 12px;
@@ -1391,10 +1466,32 @@
         <section class="panel chart-box">
           <div class="panel-header"><h2>Gastos por categoria</h2></div>
           <div class="chart-wrap"><canvas id="categoryChart"></canvas></div>
+          <div class="chart-summary">
+            <div class="mini-metric">
+              <span>Categoria principal</span>
+              <strong id="categoryLeader">-</strong>
+            </div>
+            <div class="mini-metric">
+              <span>Participação</span>
+              <strong id="categoryShare">0%</strong>
+            </div>
+          </div>
+          <div class="chart-insights" id="categoryInsights"></div>
         </section>
         <section class="panel chart-box">
           <div class="panel-header"><h2>Forma de pagamento</h2></div>
           <div class="chart-wrap"><canvas id="paymentChart"></canvas></div>
+          <div class="chart-summary">
+            <div class="mini-metric">
+              <span>Mais usada</span>
+              <strong id="paymentLeader">-</strong>
+            </div>
+            <div class="mini-metric">
+              <span>Total lançado</span>
+              <strong id="paymentTotal">R$ 0,00</strong>
+            </div>
+          </div>
+          <div class="chart-insights" id="paymentInsights"></div>
         </section>
         <section class="panel chart-box">
           <div class="panel-header"><h2>Evolução diária</h2></div>
@@ -1878,6 +1975,33 @@
       }, {});
     }
 
+    function chartColors() {
+      return ["#35e59a", "#f4f4f5", "#ffd36e", "#ff6375", "#a1a1aa", "#65b8ff", "#d4d4d8", "#9ca3af", "#71717a"];
+    }
+
+    function renderInsights(containerId, totals, totalValue) {
+      const container = document.getElementById(containerId);
+      const colors = chartColors();
+      const rows = Object.entries(totals).sort((a, b) => b[1] - a[1]).slice(0, 4);
+
+      if (!rows.length) {
+        container.innerHTML = `<div class="insight-row"><span class="insight-dot" style="color:#71717a;background:#71717a"></span><span class="insight-label">Sem dados no mês</span><span class="insight-value">0%</span></div>`;
+        return;
+      }
+
+      container.innerHTML = rows.map(([label, value], index) => {
+        const percent = totalValue > 0 ? (value / totalValue) * 100 : 0;
+        const color = colors[index % colors.length];
+        return `
+          <div class="insight-row">
+            <span class="insight-dot" style="color:${color};background:${color}"></span>
+            <span class="insight-label">${escapeHtml(label)}</span>
+            <span class="insight-value">${formatMoney(value)} · ${percent.toFixed(1)}%</span>
+          </div>
+        `;
+      }).join("");
+    }
+
     function updateSummary() {
       const month = getCurrentMonth();
       const monthExpenses = expensesInMonth(month);
@@ -2058,6 +2182,9 @@
       const categoryTotals = groupBy(monthExpenses, "category");
       const paymentTotals = groupBy(monthExpenses, "payment");
       const dailyTotals = {};
+      const totalSpent = sumExpenses(monthExpenses);
+      const topCategory = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1])[0];
+      const topPayment = Object.entries(paymentTotals).sort((a, b) => b[1] - a[1])[0];
 
       monthExpenses.forEach((expense) => {
         const day = expense.date.slice(8, 10);
@@ -2065,8 +2192,14 @@
       });
 
       renderChart("categoryChart", "doughnut", Object.keys(categoryTotals), Object.values(categoryTotals));
-      renderChart("paymentChart", "bar", Object.keys(paymentTotals), Object.values(paymentTotals));
+      renderChart("paymentChart", "doughnut", Object.keys(paymentTotals), Object.values(paymentTotals));
       renderChart("dailyChart", "line", Object.keys(dailyTotals).sort(), Object.keys(dailyTotals).sort().map((day) => dailyTotals[day]));
+      $("#categoryLeader").textContent = topCategory ? `${topCategory[0]} (${formatMoney(topCategory[1])})` : "-";
+      $("#categoryShare").textContent = topCategory && totalSpent > 0 ? `${((topCategory[1] / totalSpent) * 100).toFixed(1)}%` : "0%";
+      $("#paymentLeader").textContent = topPayment ? `${topPayment[0]} (${formatMoney(topPayment[1])})` : "-";
+      $("#paymentTotal").textContent = formatMoney(totalSpent);
+      renderInsights("categoryInsights", categoryTotals, totalSpent);
+      renderInsights("paymentInsights", paymentTotals, totalSpent);
     }
 
     function renderChart(id, type, labels, data) {
@@ -2081,7 +2214,9 @@
             data: data.length ? data : [0],
             label: "Gastos",
             borderColor: "#2ddf88",
-            backgroundColor: ["#2ddf88", "#60a5fa", "#ffd166", "#ff5b6e", "#a78bfa", "#22d3ee", "#f97316", "#f472b6", "#94a3b8"],
+            backgroundColor: chartColors(),
+            borderWidth: type === "doughnut" ? 2 : 1,
+            hoverOffset: type === "doughnut" ? 8 : 0,
             tension: 0.35,
             fill: type === "line"
           }]
@@ -2089,8 +2224,14 @@
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          cutout: type === "doughnut" ? "68%" : undefined,
           plugins: {
-            legend: { labels: { color: "#dce7fa" } }
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (context) => `${context.label}: ${formatMoney(context.raw)}`
+              }
+            }
           },
           scales: type === "doughnut" ? {} : {
             x: { ticks: { color: "#95a3b9" }, grid: { color: "rgba(255,255,255,0.07)" } },
